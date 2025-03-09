@@ -1,33 +1,58 @@
-_format_version: "3.0"  # Add this line at the top
+_format_version: "3.0"
+_transform: true
 
 services:
   - name: identity_service
-    url: http://host.docker.internal:3000
+    url: http://host.docker.internal:3000  # Backend service URL
     routes:
-      - name: identity_routes  # Unique name
+      - name: all_routes
         paths:
-          - /
+          - /  # This acts as a wildcard for all paths
         methods:
           - GET
           - POST
           - PUT
           - DELETE
         strip_path: false
+
 
   - name: wallet
     url: http://host.docker.internal:8005
     routes:
-      - name: wallet_routes  # Unique name
-        paths:
-          - /
+      - name: hamada
+        paths: 
+          - /hamada
         methods:
           - GET
           - POST
           - PUT
           - DELETE
         strip_path: false
-    # plugins:
-    #   - name: jwt
-    #     config:
-    #       key_claim_name: "iss"
-    #       anonymous: false
+    plugins:
+    - name: jwt
+      # config:
+      #   claims_to_verify: ["exp"]  # Only verify the "exp" claim
+      #   key_claim_name: "sub"      # Use "sub" or another claim as the key identifier
+      #   anonymous: "false"           # Reject unauthenticated requests
+    
+
+    
+# plugins:
+# - name: rate-limiting
+#   config:
+#     minute: 100          # 100 requests per minute
+#     policy: local
+    # identifier: jwt:sub  # Rate limit by user ID from JWT
+# - name: proxy-cache
+#   config:
+#     cache_ttl: 300  # Cache for 5 minutes
+#     strategy: memory
+# - name: cors
+#   config:
+#     origins: ["*"]           # Adjust to specific domains in production
+#     methods: ["GET", "POST", "PUT", "DELETE"]    
+#     credentials: true       # Allow JWT in credentials
+# - name: file-log
+#   config:
+#     path: /var/log/api-gateway.log  # ensure that the log file path (/var/log/api-gateway.log) is writable by the Kong process.
+#     log_body: true
