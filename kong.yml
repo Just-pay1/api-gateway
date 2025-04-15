@@ -1,39 +1,77 @@
-_format_version: "3.0"
+_format_version: "2.1"
 _transform: true
+
+consumers:
+  - username: identity-service
+    custom_id: "1234"
+
+jwt_secrets:
+  - consumer: identity-service
+    key: identity
+    secret: "2a44e102d3ba26aee08b8245079b767093e65b3341b60de2b1d5507fff790ff1"
+    algorithm: "HS256"  
+    # `secret_is_base64: false` is deprecated and not needed for plain hex secrets
 
 services:
   - name: identity_service
-    url: http://host.docker.internal:3000  # Backend service URL
+    url: http://host.docker.internal:3000
     routes:
       - name: all_routes
-        paths:
-          - /  # This acts as a wildcard for all paths
-        methods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
+        paths: ["/"]
+        methods: ["GET", "POST", "PUT", "DELETE"]
         strip_path: false
-
 
   - name: wallet
     url: http://host.docker.internal:8005
     routes:
       - name: hamada
-        paths: 
-          - /hamada
-        methods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-        strip_path: false
+        paths: ["/hamada"]
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        strip_path: true
     plugins:
-    - name: jwt
-      # config:
-      #   claims_to_verify: ["exp"]  # Only verify the "exp" claim
-      #   key_claim_name: "sub"      # Use "sub" or another claim as the key identifier
-      #   anonymous: "false"           # Reject unauthenticated requests
+      - name: jwt
+        config:
+          run_on_preflight: true
+          header_names: ["Authorization"]
+      
+      # Fixed pre-function plugin
+      - name: pre-function
+        config:
+          access:
+            - |
+              -- Alternative JWT decoding without cjson
+              local auth_header = kong.request.get_header("Authorization")
+              if auth_header then
+                local jwt_token = auth_header:match("Bearer%s+(.+)")
+                if jwt_token then
+                  -- Extract payload part
+                  local _, payload_end = jwt_token:find("%.")
+                  if payload_end then
+                    local payload_b64 = jwt_token:sub(payload_end + 1, jwt_token:find("%.", payload_end + 1) - 1)
+                    -- Base64 URL decode with padding
+                    payload_b64 = payload_b64:gsub("-", "+"):gsub("_", "/")
+                    local padding = #payload_b64 % 4
+                    if padding > 0 then
+                      payload_b64 = payload_b64 .. string.rep("=", 4 - padding)
+                    end
+                    local payload_json = ngx.decode_base64(payload_b64)
+                    
+                    -- Simple JSON parsing (works for flat structures)
+                    if payload_json then
+                      local user_id = payload_json:match('"user_id"%s*:%s*(%d+)')
+                          or payload_json:match('"sub"%s*:%s*"([^"]+)"')
+                      local iss = payload_json:match('"iss"%s*:%s*"([^"]+)"')
+                      
+                      if user_id then
+                        kong.service.request.set_header("X-User-Id", user_id)
+                      end
+                      if iss then
+                        kong.service.request.set_header("X-JWT-Issuer", iss)
+                      end
+                    end
+                  end
+                end
+              end
     
 
     
