@@ -14,7 +14,7 @@ jwt_secrets:
 
 services:
   - name: identity_service
-    url: http://host.docker.internal:3000
+    url: https://identity0.azurewebsites.net
     routes:
       - name: all_routes
         paths: ["/"]
@@ -22,7 +22,7 @@ services:
         strip_path: false
 
   - name: wallet
-    url: http://host.docker.internal:8005
+    url: https://e-wallet.azurewebsites.net
     routes:
       - name: hamada
         paths: ["/hamada"]
