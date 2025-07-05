@@ -33,7 +33,7 @@ services:
     url: https://refererencenumber-akcug4h4d4fff8d9.canadacentral-01.azurewebsites.net
     routes:
       - name: all_routes__
-        paths: ["/reference"]
+        paths: ["/reference-number"]
         methods: ["GET", "POST", "PUT", "DELETE"]
         strip_path: true
 
