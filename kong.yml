@@ -17,15 +17,15 @@ services:
     url: https://identity0.azurewebsites.net
     routes:
       - name: all_routes
-        paths: ["/"]
+        paths: ["/identity"]
         methods: ["GET", "POST", "PUT", "DELETE"]
-        strip_path: false
+        strip_path: true
 
   - name: wallet
     url: https://e-wallet.azurewebsites.net
     routes:
-      - name: hamada
-        paths: ["/hamada"]
+      - name: transactions
+        paths: ["/transactions"]
         methods: ["GET", "POST", "PUT", "DELETE"]
         strip_path: true
     plugins:
